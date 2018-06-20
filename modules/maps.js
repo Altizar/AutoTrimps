@@ -262,6 +262,27 @@ function autoMap() {
         shouldDoHealthMaps = true;
     }
 
+    //Raiding
+    var poisonRaiding = false;
+    if (autoTrimpSettings.Praidingzone.value && game.global.mapBonus < customVars.maxMapBonus) {
+        if (game.global.world >= autoTrimpSettings.Praidingzone.value && getEmpowerment() == "Poison") {
+            var nextPrestige = game.mapUnlocks[getPageSetting('Prestige')].last + 5;
+            if ((nextPrestige - game.global.world) <= 8) {
+                advExtraMapLevels = nextPrestige - game.global.world;
+                poisonRaiding = true;
+                shouldFarm = true;
+                shouldDoMaps = true;
+                if (!game.global.preMapsActive && !game.global.mapsActive) {
+                    mapsClicked();
+                    if (!game.global.preMapsActive) {
+                        mapsClicked();
+                    }
+                    debug("Beginning Prestige Raiding...");
+                }
+            }
+        }
+    }
+
     //FarmWhenNomStacks7
     var restartVoidMap = false;
     if (game.global.challengeActive == 'Nom' && getPageSetting('FarmWhenNomStacks7')) {
@@ -386,6 +407,10 @@ function autoMap() {
                 break;
             }
         }
+    }
+    // Make sure Autotrips uses higher level map
+    if (poisonRaiding) {
+        maxlvl = siphlvl = game.global.world + extraMapLevels + advExtraMapLevels;
     }
     var obj = {};
     var siphonMap = -1;
@@ -562,13 +587,43 @@ function autoMap() {
             break;
         }
     }
+
+    var bwRaidingMap = -1;
+    if (!poisonRaiding && game.global.world == getPageSetting('BWraidingz') && !game.global.mapsActive) {
+        var bwRaidingMap = -1;
+        var itemCount = 0;
+        var nextBWLevel = findNextBionicLevel(getPageSetting('BWraidingz'));
+        var maxBWLevel = getPageSetting('BWraidingmax');
+        for (var level = nextBWLevel; level <= maxBWLevel; level += 15) {
+            bwRaidingMap = findBionicByLevel(level);
+            if (bwRaidingMap === undefined) {
+                bwRaidingMap = findLastBionic();
+                break;
+            }
+            itemCount = addSpecials(true, true, bwRaidingMap);
+            if (itemCount === 0) {
+                bwRaidingMap = -1;
+                continue;
+            }
+            break;
+        }
+        if (bwRaidingMap != -1) {
+            if (!game.global.mapsActive && !game.global.preMapsActive) {
+                mapsClicked();
+                mapsClicked();
+            }
+            shouldDoMaps = true;
+        }
+    }
     //MAPS CREATION pt1:
     //map if we don't have health/dmg or we need to clear void maps or if we are prestige mapping, and our set item has a new prestige available
     if (shouldDoMaps || doVoids || needPrestige) {
         //selectedMap = world here if we haven't set it to create yet, meaning we found appropriate high level map, or siphon map
         if (selectedMap == "world") {
             //if preSpireFarming x minutes is true, switch over from wood maps to metal maps.
-            if (preSpireFarming) {
+            if (bwRaidingMap != -1) {
+                selectedMap = bwRaidingMap.id;
+            } else if (preSpireFarming) {
                 var spiremaplvl = (game.talents.mapLoot.purchased && MODULES["maps"].SpireFarm199Maps) ? game.global.world - 1 : game.global.world;
                 if (game.global.mapsOwnedArray[highestMap].level >= spiremaplvl && game.global.mapsOwnedArray[highestMap].location == ((customVars.preferGardens && game.global.decayDone) ? 'Plentiful' : 'Mountain'))
                     selectedMap = game.global.mapsOwnedArray[highestMap].id;
@@ -678,7 +733,10 @@ function autoMap() {
             mapsClicked(); //go back
         } else if (selectedMap == "create") {
             var $mapLevelInput = document.getElementById("mapLevelInput");
-            $mapLevelInput.value = needPrestige ? game.global.world : siphlvl;
+            $mapLevelInput.value = game.global.world;
+            if (siphlvl < game.global.world) {
+                $mapLevelInput.value = needPrestige ? game.global.world : siphlvl;
+            }
             //choose spire level 199 or 200
             if (preSpireFarming && MODULES["maps"].SpireFarm199Maps)
                 $mapLevelInput.value = game.talents.mapLoot.purchased ? game.global.world - 1 : game.global.world;
@@ -716,6 +774,11 @@ function autoMap() {
             //if we are "Farming" for resources, make sure it's Plentiful OR metal (and always aim for lowest difficulty)
             if (shouldFarm || !enoughDamage || !enoughHealth || game.global.challengeActive == 'Metal') {
                 biomeAdvMapsSelect.value = useGardens ? "Plentiful" : "Mountain";
+                updateMapCost();
+            }
+            if (poisonRaiding) {
+                document.getElementById('advExtraLevelSelect').value = advExtraMapLevels;
+                biomeAdvMapsSelect.value = "Random";
                 updateMapCost();
             }
             //set up various priorities for various situations

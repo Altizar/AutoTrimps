@@ -137,10 +137,10 @@ function getPageSetting(setting) {
     if (autoTrimpSettings[setting].type == 'boolean') {
         // debug('found a boolean');
         return autoTrimpSettings[setting].enabled;
-    } else if (autoTrimpSettings[setting].type == 'multiValue') {
-	// debug('found a multivalue');
+	} else if (autoTrimpSettings[setting].type == 'multiValue') {
+		// debug('found a multivalue');
         return Array.from(autoTrimpSettings[setting].value)
-        .map(x => parseInt(x));
+                .map(x => parseInt(x));
     } else if (autoTrimpSettings[setting].type == 'value' || autoTrimpSettings[setting].type == 'valueNegative') {
         // debug('found a value');
         return parseFloat(autoTrimpSettings[setting].value);
@@ -403,4 +403,26 @@ window.onerror = function catchErrors(msg, url, lineNo, columnNo, error) {
 
 function throwErrorfromModule() {
     throw new Error("We have successfully read the thrown error message out of a module");
+}
+
+function findLastBionic() {
+    for (var i = game.global.mapsOwnedArray.length - 1; i >= 0; i--) {
+        if (game.global.mapsOwnedArray[i].location === "Bionic") {
+            return game.global.mapsOwnedArray[i];
+        }
+    }
+}
+
+function findBionicByLevel(bwLevel) {
+    for (var i = game.global.mapsOwnedArray.length - 1; i >= 0; i--) {
+        if (game.global.mapsOwnedArray[i].location === "Bionic") {
+            if (game.global.mapsOwnedArray[i].level === bwLevel) {
+                return game.global.mapsOwnedArray[i];
+            }
+        }
+    }
+}
+
+function findNextBionicLevel(targetLevel) {
+    return Math.ceil((targetLevel - 110) / 15) * 15 + 110;
 }
